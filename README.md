@@ -135,12 +135,135 @@ mysql> select * from book;
 +------------------+----+--------+--------+-------+----------+-------+-----------+-------+
 2 rows in set (0.00 sec)
 here the book 1 rating are the average of two customer rating
- 
+
+
+ Order Placement
+○ Validate stock.
+○ Calculate total (apply discounts, membership bonus)
+○ Decrease stock atomically (transactional behavior required).
+
+localhost:8083/api/orders?customerId=1
+body
+[
+  {
+    "bookId": "3",
+    "quantity": 1,
+    "discount": 5.0
+  },
+  {
+    "bookId": "4",
+    "quantity": 1,
+    "discount": 0.0
+  }
+]
+
+response 
+
+{
+    "id": 2,
+    "customerId": 1,
+    "shippingFee": 40,
+    "totalPrice": 759.982,
+    "status": "PLACED",
+    "createdAt": "2025-06-13T15:44:22.4637007",
+    "items": [
+        {
+            "id": 3,
+            "bookId": 3,
+            "quantity": 1,
+            "discount": 39.999
+        },
+        {
+            "id": 4,
+            "bookId": 4,
+            "quantity": 1,
+            "discount": 39.999
+        }
+    ]
+}
+
+before
+mysql> select * from book;
++------------------+----+--------+--------+-------+----------+-------+-----------+-------+
+| discounted_price | id | price  | rating | stock | author   | genre | publisher | title |
++------------------+----+--------+--------+-------+----------+-------+-----------+-------+
+|             NULL |  1 | 399.99 |      0 |     0 | Author f | NULL  | NULL      | NULL  |
+|             NULL |  2 | 399.99 |      0 |     1 | Author e | NULL  | NULL      | NULL  |
+|             NULL |  3 | 399.99 |      0 |     3 | Author g | NULL  | NULL      | NULL  |
+|             NULL |  4 | 399.99 |      0 |     3 | Author h | NULL  | NULL      | NULL  |
++------------------+----+--------+--------+-------+----------+-------+-----------+-------+
+4 rows in set (0.00 sec)
+
+after
+mysql> select * from book;
++------------------+----+--------+--------+-------+----------+-------+-----------+-------+
+| discounted_price | id | price  | rating | stock | author   | genre | publisher | title |
++------------------+----+--------+--------+-------+----------+-------+-----------+-------+
+|             NULL |  1 | 399.99 |      0 |     0 | Author f | NULL  | NULL      | NULL  |
+|             NULL |  2 | 399.99 |      0 |     1 | Author e | NULL  | NULL      | NULL  |
+|             NULL |  3 | 399.99 |      0 |     2 | Author g | NULL  | NULL      | NULL  |
+|             NULL |  4 | 399.99 |      0 |     2 | Author h | NULL  | NULL      | NULL  |
++------------------+----+--------+--------+-------+----------+-------+-----------+-------+
+4 rows in set (0.00 sec)
+
+here stock are decreases automatically
 
 
 
 
 
+○ GET /admin/bestsellers?period=monthly: Return best-selling books this month.
+
+get api
+localhost:8083/admin/bestsellers
+
+response
+[
+    {
+        "id": 1,
+        "title": null,
+        "author": "Author f",
+        "genre": null,
+        "price": 399.99,
+        "stock": 0,
+        "rating": 0.0,
+        "publisher": null,
+        "discountedPrice": null
+    },
+    {
+        "id": 2,
+        "title": null,
+        "author": "Author e",
+        "genre": null,
+        "price": 399.99,
+        "stock": 1,
+        "rating": 0.0,
+        "publisher": null,
+        "discountedPrice": null
+    },
+    {
+        "id": 3,
+        "title": null,
+        "author": "Author g",
+        "genre": null,
+        "price": 399.99,
+        "stock": 2,
+        "rating": 0.0,
+        "publisher": null,
+        "discountedPrice": null
+    },
+    {
+        "id": 4,
+        "title": null,
+        "author": "Author h",
+        "genre": null,
+        "price": 399.99,
+        "stock": 2,
+        "rating": 0.0,
+        "publisher": null,
+        "discountedPrice": null
+    }
+]
 
 
 
