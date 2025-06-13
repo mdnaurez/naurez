@@ -43,8 +43,49 @@ public class OrderService {
 
 @Transactional
 public Order placeOrder(int customerId, List<OrderItemDTO> items) {
-    Customer customer = customerRepository.findById(customerId).orElseThrow();
-    Order order=new Order();
+//    Customer customer = customerRepository.findById(customerId).orElseThrow();
+//    Order order=new Order();
+//    order.setCustomerId(customerId);
+//    order.setCreatedAt(LocalDateTime.now());
+//    order.setStatus(OrderStatus.PLACED);
+//
+//    BigDecimal total = BigDecimal.ZERO;
+//    List<OrderItem> orderItems = new ArrayList<>();
+//
+//    for (OrderItemDTO dto : items) {
+//        Book book = bookRepository.findById(dto.getBookId()).orElseThrow();
+//        if (book.getStock() < dto.getQuantity()) throw new RuntimeException("Out of stock");
+//        book.setStock(book.getStock() - dto.getQuantity());
+//
+//        BigDecimal base = book.getDiscountedPrice().multiply(BigDecimal.valueOf(dto.getQuantity()));
+//        BigDecimal membershipDiscount = switch (customer.getMembershipLevel()) {
+//            case PREMIUM -> base.multiply(BigDecimal.valueOf(0.05));
+//            case GOLD -> base.multiply(BigDecimal.valueOf(0.10));
+//            default -> BigDecimal.ZERO;
+//        };
+//        BigDecimal finalPrice = base.subtract(membershipDiscount);
+//        total = total.add(finalPrice);
+//
+//        OrderItem item = new OrderItem();
+//        item.setBookId(dto.getBookId());
+//        item.setQuantity(dto.getQuantity());
+//        item.setDiscount(membershipDiscount);
+//        item.setOrder(order);
+//        orderItems.add(item);
+//    }
+//
+//    order.setItems(orderItems);
+//    order.setShippingFee(BigDecimal.valueOf(40));
+//    order.setTotalPrice(total.add(order.getShippingFee()));
+//
+//    Order saved = orderRepository.save(order);
+////    emailService.sendOrderConfirmationAsync(customer.getEmail(), saved.getId());
+//    return saved;
+
+    Customer customer = customerRepository.findById(customerId)
+            .orElseThrow(() -> new RuntimeException("Customer not found"));
+
+    Order order = new Order();
     order.setCustomerId(customerId);
     order.setCreatedAt(LocalDateTime.now());
     order.setStatus(OrderStatus.PLACED);
@@ -53,16 +94,28 @@ public Order placeOrder(int customerId, List<OrderItemDTO> items) {
     List<OrderItem> orderItems = new ArrayList<>();
 
     for (OrderItemDTO dto : items) {
-        Book book = bookRepository.findById(dto.getBookId()).orElseThrow();
-        if (book.getStock() < dto.getQuantity()) throw new RuntimeException("Out of stock");
+        Book book = bookRepository.findById(dto.getBookId())
+                .orElseThrow(() -> new RuntimeException("Book not found: " + dto.getBookId()));
+
+        if (book.getStock() < dto.getQuantity()) {
+            throw new RuntimeException("Out of stock for book: " + book.getTitle());
+        }
+
         book.setStock(book.getStock() - dto.getQuantity());
 
-        BigDecimal base = book.getDiscountedPrice().multiply(BigDecimal.valueOf(dto.getQuantity()));
+        // ✅ Safely get discountedPrice or fall back to normal price
+        BigDecimal discountedPrice = book.getDiscountedPrice() != null
+                ? book.getDiscountedPrice()
+                : book.getPrice();
+
+        BigDecimal base = discountedPrice.multiply(BigDecimal.valueOf(dto.getQuantity()));
+
         BigDecimal membershipDiscount = switch (customer.getMembershipLevel()) {
             case PREMIUM -> base.multiply(BigDecimal.valueOf(0.05));
             case GOLD -> base.multiply(BigDecimal.valueOf(0.10));
             default -> BigDecimal.ZERO;
         };
+
         BigDecimal finalPrice = base.subtract(membershipDiscount);
         total = total.add(finalPrice);
 
@@ -79,7 +132,10 @@ public Order placeOrder(int customerId, List<OrderItemDTO> items) {
     order.setTotalPrice(total.add(order.getShippingFee()));
 
     Order saved = orderRepository.save(order);
-//    emailService.sendOrderConfirmationAsync(customer.getEmail(), saved.getId());
+
+    // Optional: send confirmation email
+    // emailService.sendOrderConfirmationAsync(customer.getEmail(), saved.getId());
+
     return saved;
 }
 

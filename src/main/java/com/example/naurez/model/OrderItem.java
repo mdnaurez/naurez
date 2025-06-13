@@ -1,4 +1,5 @@
 package com.example.naurez.model;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -20,6 +21,7 @@ public class OrderItem {
     private BigDecimal discount;
 
     @ManyToOne @JoinColumn(name = "order_id")
+    @JsonIgnoreProperties("items")
     private Order order;
 
 
